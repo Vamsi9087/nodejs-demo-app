@@ -11,19 +11,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
+      - name:  Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name:  Build Docker image
         run: docker build -t local-node-app .
 
       - name: Run Docker container
-        run: docker run -d -p 3000:3000 local-node-app
+        run: docker run -d --network=host --name node-app local-node-app
 
-      - name: Wait and Test
+      - name: 🕵️ Show container logs
+        run: docker ps && docker logs node-app || true
+
+      - name: ⏱️ Wait for app to start
         run: |
-          sleep 5
-          curl http://localhost:3000 || exit 1
+          echo "Waiting for app to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Server is up!"
+              curl -v http://localhost:3000
+              exit 0
+            fi
+            echo "Still waiting... ($i)"
+            sleep 2
+          done
+          echo " Server did not start in time"
+          docker logs node-app
+          exit 1
+
+      - name:  Clean up
+        if: always()
+        run: docker rm -f node-app || true
