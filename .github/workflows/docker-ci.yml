@@ -1,0 +1,29 @@
+name: Docker Build & Run CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t local-node-app .
+
+      - name: Run Docker container
+        run: docker run -d -p 3000:3000 local-node-app
+
+      - name: Wait and Test
+        run: |
+          sleep 5
+          curl http://localhost:3000 || exit 1
